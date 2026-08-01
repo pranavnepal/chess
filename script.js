@@ -948,24 +948,33 @@ class UIController {
     const square = event.target.closest(".square");
     const index = pieceElement ? Number(pieceElement.dataset.index) : square ? Number(square.dataset.index) : null;
     if (index === null) return;
-    if (this.game.gameOver) return;
-    const piece = this.game.getPieceAt(index);
-    if (this.pendingPromotion) return;
+    if (this.game.gameOver || this.pendingPromotion) return;
 
+    const piece = this.game.getPieceAt(index);
+
+    // If a piece is already selected and the clicked square is a legal destination, make the move.
     if (this.selectedIndex !== null && this.legalMoves.includes(index)) {
       this.makeMove(this.selectedIndex, index);
       return;
     }
 
+    // Select a friendly piece to show its legal moves.
     if (piece && piece.color === this.game.turn) {
-      this.selectedIndex = index;
-      this.legalMoves = this.game.getLegalMoves().filter((move) => move.from === index).map((move) => move.to);
+      if (this.selectedIndex === index) {
+        this.selectedIndex = null;
+        this.legalMoves = [];
+      } else {
+        this.selectedIndex = index;
+        this.legalMoves = this.game.getLegalMoves().filter((move) => move.from === index).map((move) => move.to);
+      }
       this.render();
-    } else {
-      this.selectedIndex = null;
-      this.legalMoves = [];
-      this.render();
+      return;
     }
+
+    // Clicking elsewhere clears the current selection.
+    this.selectedIndex = null;
+    this.legalMoves = [];
+    this.render();
   }
 
   handlePointerDown(event) {
