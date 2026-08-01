@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Chess Master AI</title>
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body>
+    <div class="app-shell">
+      <header class="topbar">
+        <div class="brand">
+          <h1>Chess Master</h1>
+          <p>Play versus a strong AI with full chess rules</p>
+        </div>
+        <div class="topbar-actions">
+          <button id="menu-btn" class="secondary">Main Menu</button>
+          <button id="new-game-btn">New Game</button>
+          <button id="flip-btn">Flip Board</button>
+        </div>
+      </header>
+
+      <main class="main-content">
+        <section class="board-panel">
+          <div id="game-status" class="game-status">White to move</div>
+          <div class="board-shell">
+            <div id="board"></div>
+          </div>
+          <div class="control-row">
+            <button id="undo-btn" class="secondary">Undo</button>
+            <button id="restart-btn" class="secondary">Restart</button>
+            <button id="settings-open-btn" class="secondary">Settings</button>
+          </div>
+        </section>
+
+        <aside class="sidebar">
+          <section class="card">
+            <h2>Turn & Status</h2>
+            <div id="turn-display" class="stat-value">White</div>
+            <div id="status-display" class="status-pill">Playing</div>
+          </section>
+
+          <section class="card">
+            <h2>Captured Pieces</h2>
+            <div class="captured-group">
+              <span>White</span>
+              <div id="captured-white" class="captured-list"></div>
+            </div>
+            <div class="captured-group">
+              <span>Black</span>
+              <div id="captured-black" class="captured-list"></div>
+            </div>
+          </section>
+
+          <section class="card">
+            <h2>Move History</h2>
+            <ol id="move-history-list" class="move-history"></ol>
+          </section>
+
+          <section class="card">
+            <h2>Clock</h2>
+            <label class="field-label" for="timer-select">Timer</label>
+            <select id="timer-select">
+              <option value="0">Off</option>
+              <option value="300">5 min</option>
+              <option value="600">10 min</option>
+              <option value="900">15 min</option>
+            </select>
+            <div id="clock-display" class="clock-display">--:--</div>
+          </section>
+        </aside>
+      </main>
+    </div>
+
+    <div id="overlay" class="overlay">
+      <div class="menu-card">
+        <h2>Chess Master</h2>
+        <p>Play a polished chess experience with a smart AI, full rules, and modern controls.</p>
+        <div class="menu-buttons">
+          <button id="play-ai-btn" class="primary">Play vs AI</button>
+          <button id="difficulty-menu-btn" class="secondary">Difficulty</button>
+          <button id="instructions-btn" class="secondary">Instructions</button>
+          <button id="settings-menu-btn" class="secondary">Settings</button>
+          <button id="resume-btn" class="secondary">Resume Saved Game</button>
+        </div>
+      </div>
+    </div>
+
+    <div id="modal" class="modal hidden">
+      <div class="modal-card">
+        <div class="modal-header">
+          <h3 id="modal-title">Settings</h3>
+          <button id="modal-close" class="icon-btn">×</button>
+        </div>
+        <div id="modal-content" class="modal-content"></div>
+      </div>
+    </div>
+
+    <div id="promotion-modal" class="modal hidden">
+      <div class="modal-card promotion-card">
+        <h3>Choose Promotion</h3>
+        <div class="promotion-buttons">
+          <button data-promotion="q">Queen</button>
+          <button data-promotion="r">Rook</button>
+          <button data-promotion="b">Bishop</button>
+          <button data-promotion="n">Knight</button>
+        </div>
+      </div>
+    </div>
+
+    <script src="script.js"></script>
+  </body>
+</html>
