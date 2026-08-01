@@ -758,6 +758,8 @@ class UIController {
     this.isFlipped = false;
     this.pendingPromotion = null;
     this.boardElement = document.getElementById("board");
+    this.draggingPiece = null;
+    this.draggingIndex = null;
     this.overlay = document.getElementById("overlay");
     this.modal = document.getElementById("modal");
     this.promotionModal = document.getElementById("promotion-modal");
@@ -810,7 +812,9 @@ class UIController {
     this.boardElement.addEventListener("pointerdown", (event) => this.handlePointerDown(event));
     this.boardElement.addEventListener("pointermove", (event) => this.handlePointerMove(event));
     this.boardElement.addEventListener("pointerup", (event) => this.handlePointerUp(event));
+    this.boardElement.addEventListener("pointercancel", (event) => this.handlePointerUp(event));
     this.boardElement.addEventListener("pointerleave", (event) => this.handlePointerUp(event));
+    this.boardElement.style.touchAction = "none";
     window.addEventListener("resize", () => this.render());
   }
 
@@ -947,31 +951,20 @@ class UIController {
     const pieceElement = event.target.closest(".piece");
     const square = event.target.closest(".square");
     const index = pieceElement ? Number(pieceElement.dataset.index) : square ? Number(square.dataset.index) : null;
-    if (index === null) return;
-    if (this.game.gameOver || this.pendingPromotion) return;
+    if (index === null || this.game.gameOver || this.pendingPromotion) return;
 
     const piece = this.game.getPieceAt(index);
 
-    // If a piece is already selected and the clicked square is a legal destination, make the move.
     if (this.selectedIndex !== null && this.legalMoves.includes(index)) {
       this.makeMove(this.selectedIndex, index);
       return;
     }
 
-    // Select a friendly piece to show its legal moves.
     if (piece && piece.color === this.game.turn) {
-      if (this.selectedIndex === index) {
-        this.selectedIndex = null;
-        this.legalMoves = [];
-      } else {
-        this.selectedIndex = index;
-        this.legalMoves = this.game.getLegalMoves().filter((move) => move.from === index).map((move) => move.to);
-      }
-      this.render();
+      this.selectPiece(index);
       return;
     }
 
-    // Clicking elsewhere clears the current selection.
     this.selectedIndex = null;
     this.legalMoves = [];
     this.render();
@@ -979,18 +972,16 @@ class UIController {
 
   handlePointerDown(event) {
     const piece = event.target.closest(".piece");
-    if (!piece || !piece.dataset.index) return;
-    if (this.game.gameOver) return;
+    if (!piece || !piece.dataset.index || this.game.gameOver || this.pendingPromotion) return;
     const index = Number(piece.dataset.index);
     const boardPiece = this.game.getPieceAt(index);
     if (!boardPiece || boardPiece.color !== this.game.turn) return;
-    this.selectedIndex = index;
-    this.legalMoves = this.game.getLegalMoves().filter((move) => move.from === index).map((move) => move.to);
+
+    this.selectPiece(index);
     piece.classList.add("dragging");
     this.draggingPiece = piece;
     this.draggingIndex = index;
     piece.setPointerCapture(event.pointerId);
-    this.render();
   }
 
   handlePointerMove(event) {
@@ -1007,17 +998,35 @@ class UIController {
     const target = document.elementFromPoint(event.clientX, event.clientY);
     const square = target?.closest(".square");
     this.draggingPiece.classList.remove("dragging");
+    const fromIndex = this.draggingIndex;
     this.draggingPiece = null;
+    this.draggingIndex = null;
+
     if (square) {
       const index = Number(square.dataset.index);
       if (this.selectedIndex !== null && this.legalMoves.includes(index)) {
         this.makeMove(this.selectedIndex, index);
-      } else if (this.selectedIndex !== null) {
-        this.selectedIndex = null;
-        this.legalMoves = [];
-        this.render();
+      } else if (fromIndex !== null) {
+        this.selectPiece(fromIndex);
       }
+    } else {
+      this.render();
     }
+  }
+
+  selectPiece(index) {
+    if (this.game.gameOver || this.pendingPromotion) return;
+    const piece = this.game.getPieceAt(index);
+    if (!piece || piece.color !== this.game.turn) return;
+
+    if (this.selectedIndex === index) {
+      this.selectedIndex = null;
+      this.legalMoves = [];
+    } else {
+      this.selectedIndex = index;
+      this.legalMoves = this.game.getLegalMoves().filter((move) => move.from === index).map((move) => move.to);
+    }
+    this.render();
   }
 
   async makeMove(from, to) {
