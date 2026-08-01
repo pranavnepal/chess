@@ -961,6 +961,17 @@ class UIController {
     return this.isFlipped ? 63 - visibleIndex : visibleIndex;
   }
 
+  getSquarePosition(index) {
+    if (index === null || Number.isNaN(index)) return null;
+
+    const displayIndex = this.isFlipped ? 63 - index : index;
+    const row = Math.floor(displayIndex / BOARD_SIZE);
+    const col = displayIndex % BOARD_SIZE;
+    const rect = this.boardElement.getBoundingClientRect();
+    const cellSize = rect.width / BOARD_SIZE;
+    return { x: col * cellSize, y: row * cellSize };
+  }
+
   handleBoardClick(event) {
     if (this.game.gameOver || this.pendingPromotion) return;
     if (this.suppressNextClick) {
@@ -1030,22 +1041,30 @@ class UIController {
 
     const fromIndex = this.draggingIndex;
     const dropIndex = this.getBoardIndexFromClientPoint(event.clientX, event.clientY);
+    const isValidDrop = dropIndex !== null && this.selectedIndex !== null && this.legalMoves.includes(dropIndex);
+
+    if (isValidDrop) {
+      const targetPosition = this.getSquarePosition(dropIndex);
+      if (targetPosition) {
+        this.draggingPiece.style.left = `${targetPosition.x}px`;
+        this.draggingPiece.style.top = `${targetPosition.y}px`;
+      }
+    }
+
     this.draggingPiece.classList.remove("dragging");
     this.draggingPiece.style.zIndex = "";
     this.draggingPiece = null;
     this.draggingIndex = null;
 
-    if (dropIndex !== null && this.selectedIndex !== null && this.legalMoves.includes(dropIndex)) {
+    if (isValidDrop) {
       this.makeMove(this.selectedIndex, dropIndex);
-    } else if (fromIndex !== null && !this.pointerMoved) {
-      this.render();
     } else if (fromIndex !== null) {
       this.render();
     } else {
       this.render();
     }
 
-    this.suppressNextClick = this.pointerMoved || (dropIndex !== null && this.selectedIndex !== null && this.legalMoves.includes(dropIndex));
+    this.suppressNextClick = this.pointerMoved || isValidDrop;
     this.pointerMoved = false;
     this.pointerStartIndex = null;
   }
@@ -1090,7 +1109,11 @@ class UIController {
       return;
     }
 
-    if (this.game.turn === "b") {
+    this.queueAiTurn();
+  }
+
+  queueAiTurn() {
+    if (!this.game.gameOver && this.game.turn === "b") {
       window.setTimeout(() => this.aiMove(), 650);
     }
   }
@@ -1106,9 +1129,7 @@ class UIController {
     this.closePromotionModal();
     this.render();
     this.saveGame();
-    if (!this.game.gameOver && this.game.turn === "b") {
-      window.setTimeout(() => this.aiMove(), 650);
-    }
+    this.queueAiTurn();
   }
 
   aiMove() {
