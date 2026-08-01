@@ -1070,9 +1070,10 @@ class UIController {
     this.saveGame();
     if (this.game.gameOver) {
       this.audio.play(this.game.status === "checkmate" ? "checkmate" : "check");
+      return;
     }
 
-    if (!this.game.gameOver && this.game.turn === "b") {
+    if (this.game.turn === "b") {
       window.setTimeout(() => this.aiMove(), 650);
     }
   }
@@ -1095,18 +1096,17 @@ class UIController {
 
   aiMove() {
     if (this.game.gameOver || this.game.turn !== "b") return;
+
     const legalMoves = this.game.getLegalMoves();
     if (!legalMoves.length) return;
 
-    const move = this.game.findBestMove(this.getDepthFromDifficulty(this.difficulty)) || legalMoves[0];
-    const from = move.from;
-    const to = move.to;
-    const legalMove = legalMoves.find((candidate) => candidate.from === from && candidate.to === to) || legalMoves[0];
+    const chosen = this.game.findBestMove(this.getDepthFromDifficulty(this.difficulty)) || legalMoves[0];
+    const legalMove = legalMoves.find((candidate) => candidate.from === chosen.from && candidate.to === chosen.to) || legalMoves[0];
     if (!legalMove) return;
 
     if (legalMove.promotion) {
       const promotion = ["q", "r", "b", "n"][Math.floor(Math.random() * 4)];
-      this.game.makeMove({ ...legalMove, from, to, promotion }, { recordHistory: true, storeUndo: false });
+      this.game.makeMove({ ...legalMove, from: legalMove.from, to: legalMove.to, promotion }, { recordHistory: true, storeUndo: false });
       this.audio.play("move");
       this.selectedIndex = null;
       this.legalMoves = [];
@@ -1115,7 +1115,7 @@ class UIController {
       return;
     }
 
-    this.game.makeMove({ ...legalMove, from, to }, { recordHistory: true, storeUndo: false });
+    this.game.makeMove({ ...legalMove, from: legalMove.from, to: legalMove.to }, { recordHistory: true, storeUndo: false });
     this.audio.play(this.getSoundTypeForMove(legalMove));
     this.selectedIndex = null;
     this.legalMoves = [];
