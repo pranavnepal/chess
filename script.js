@@ -760,6 +760,9 @@ class UIController {
     this.boardElement = document.getElementById("board");
     this.draggingPiece = null;
     this.draggingIndex = null;
+    this.pointerActive = false;
+    this.pointerMoved = false;
+    this.pointerStartIndex = null;
     this.overlay = document.getElementById("overlay");
     this.modal = document.getElementById("modal");
     this.promotionModal = document.getElementById("promotion-modal");
@@ -960,6 +963,10 @@ class UIController {
 
   handleBoardClick(event) {
     if (this.game.gameOver || this.pendingPromotion) return;
+    if (this.pointerActive) {
+      this.pointerActive = false;
+      return;
+    }
 
     const pieceElement = event.target.closest(".piece");
     const square = event.target.closest(".square");
@@ -997,6 +1004,9 @@ class UIController {
     if (!boardPiece || boardPiece.color !== this.game.turn) return;
 
     event.preventDefault();
+    this.pointerActive = true;
+    this.pointerMoved = false;
+    this.pointerStartIndex = index;
     this.selectPiece(index);
     piece.classList.add("dragging");
     this.draggingPiece = piece;
@@ -1007,6 +1017,7 @@ class UIController {
 
   handlePointerMove(event) {
     if (!this.draggingPiece) return;
+    this.pointerMoved = true;
     const rect = this.boardElement.getBoundingClientRect();
     const x = event.clientX - rect.left;
     const y = event.clientY - rect.top;
@@ -1026,11 +1037,17 @@ class UIController {
 
     if (dropIndex !== null && this.selectedIndex !== null && this.legalMoves.includes(dropIndex)) {
       this.makeMove(this.selectedIndex, dropIndex);
+    } else if (fromIndex !== null && !this.pointerMoved) {
+      this.selectPiece(fromIndex);
     } else if (fromIndex !== null) {
       this.selectPiece(fromIndex);
     } else {
       this.render();
     }
+
+    this.pointerActive = false;
+    this.pointerMoved = false;
+    this.pointerStartIndex = null;
   }
 
   selectPiece(index) {
