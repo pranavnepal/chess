@@ -810,11 +810,10 @@ class UIController {
 
     this.boardElement.addEventListener("click", (event) => this.handleBoardClick(event));
     this.boardElement.addEventListener("pointerdown", (event) => this.handlePointerDown(event));
-    this.boardElement.addEventListener("pointermove", (event) => this.handlePointerMove(event));
-    this.boardElement.addEventListener("pointerup", (event) => this.handlePointerUp(event));
-    this.boardElement.addEventListener("pointercancel", (event) => this.handlePointerUp(event));
-    this.boardElement.addEventListener("pointerleave", (event) => this.handlePointerUp(event));
     this.boardElement.style.touchAction = "none";
+    window.addEventListener("pointermove", (event) => this.handlePointerMove(event));
+    window.addEventListener("pointerup", (event) => this.handlePointerUp(event));
+    window.addEventListener("pointercancel", (event) => this.handlePointerUp(event));
     window.addEventListener("resize", () => this.render());
   }
 
@@ -977,10 +976,12 @@ class UIController {
     const boardPiece = this.game.getPieceAt(index);
     if (!boardPiece || boardPiece.color !== this.game.turn) return;
 
+    event.preventDefault();
     this.selectPiece(index);
     piece.classList.add("dragging");
     this.draggingPiece = piece;
     this.draggingIndex = index;
+    piece.style.zIndex = "100";
     piece.setPointerCapture(event.pointerId);
   }
 
@@ -998,6 +999,7 @@ class UIController {
     const target = document.elementFromPoint(event.clientX, event.clientY);
     const square = target?.closest(".square");
     this.draggingPiece.classList.remove("dragging");
+    this.draggingPiece.style.zIndex = "";
     const fromIndex = this.draggingIndex;
     this.draggingPiece = null;
     this.draggingIndex = null;
@@ -1076,22 +1078,30 @@ class UIController {
 
   aiMove() {
     if (this.game.gameOver || this.game.turn !== "b") return;
-    const move = this.game.findBestMove(this.getDepthFromDifficulty(this.difficulty));
-    if (!move) return;
+    const legalMoves = this.game.getLegalMoves();
+    if (!legalMoves.length) return;
+
+    const move = this.game.findBestMove(this.getDepthFromDifficulty(this.difficulty)) || legalMoves[0];
     const from = move.from;
     const to = move.to;
-    const legalMove = this.game.getLegalMoves().find((candidate) => candidate.from === from && candidate.to === to);
+    const legalMove = legalMoves.find((candidate) => candidate.from === from && candidate.to === to) || legalMoves[0];
     if (!legalMove) return;
+
     if (legalMove.promotion) {
       const promotion = ["q", "r", "b", "n"][Math.floor(Math.random() * 4)];
-      this.game.makeMove({ ...legalMove, from, to, promotion }, { recordHistory: true });
+      this.game.makeMove({ ...legalMove, from, to, promotion }, { recordHistory: true, storeUndo: false });
       this.audio.play("move");
+      this.selectedIndex = null;
+      this.legalMoves = [];
       this.render();
       this.saveGame();
       return;
     }
-    this.game.makeMove({ ...legalMove, from, to }, { recordHistory: true });
+
+    this.game.makeMove({ ...legalMove, from, to }, { recordHistory: true, storeUndo: false });
     this.audio.play(this.getSoundTypeForMove(legalMove));
+    this.selectedIndex = null;
+    this.legalMoves = [];
     this.render();
     this.saveGame();
   }
