@@ -946,21 +946,40 @@ class UIController {
     }
   }
 
+  getBoardIndexFromClientPoint(clientX, clientY) {
+    const rect = this.boardElement.getBoundingClientRect();
+    const x = clientX - rect.left;
+    const y = clientY - rect.top;
+    if (x < 0 || y < 0 || x > rect.width || y > rect.height) return null;
+
+    const col = Math.floor((x / rect.width) * BOARD_SIZE);
+    const row = Math.floor((y / rect.height) * BOARD_SIZE);
+    const visibleIndex = row * BOARD_SIZE + col;
+    return this.isFlipped ? 63 - visibleIndex : visibleIndex;
+  }
+
   handleBoardClick(event) {
+    if (this.game.gameOver || this.pendingPromotion) return;
+
     const pieceElement = event.target.closest(".piece");
     const square = event.target.closest(".square");
-    const index = pieceElement ? Number(pieceElement.dataset.index) : square ? Number(square.dataset.index) : null;
-    if (index === null || this.game.gameOver || this.pendingPromotion) return;
+    const clickedIndex = pieceElement
+      ? Number(pieceElement.dataset.index)
+      : square
+        ? Number(square.dataset.index)
+        : this.getBoardIndexFromClientPoint(event.clientX, event.clientY);
 
-    const piece = this.game.getPieceAt(index);
+    if (clickedIndex === null || Number.isNaN(clickedIndex)) return;
 
-    if (this.selectedIndex !== null && this.legalMoves.includes(index)) {
-      this.makeMove(this.selectedIndex, index);
+    const piece = this.game.getPieceAt(clickedIndex);
+
+    if (this.selectedIndex !== null && this.legalMoves.includes(clickedIndex)) {
+      this.makeMove(this.selectedIndex, clickedIndex);
       return;
     }
 
     if (piece && piece.color === this.game.turn) {
-      this.selectPiece(index);
+      this.selectPiece(clickedIndex);
       return;
     }
 
@@ -972,6 +991,7 @@ class UIController {
   handlePointerDown(event) {
     const piece = event.target.closest(".piece");
     if (!piece || !piece.dataset.index || this.game.gameOver || this.pendingPromotion) return;
+
     const index = Number(piece.dataset.index);
     const boardPiece = this.game.getPieceAt(index);
     if (!boardPiece || boardPiece.color !== this.game.turn) return;
@@ -996,21 +1016,18 @@ class UIController {
 
   handlePointerUp(event) {
     if (!this.draggingPiece) return;
-    const target = document.elementFromPoint(event.clientX, event.clientY);
-    const square = target?.closest(".square");
+
+    const fromIndex = this.draggingIndex;
+    const dropIndex = this.getBoardIndexFromClientPoint(event.clientX, event.clientY);
     this.draggingPiece.classList.remove("dragging");
     this.draggingPiece.style.zIndex = "";
-    const fromIndex = this.draggingIndex;
     this.draggingPiece = null;
     this.draggingIndex = null;
 
-    if (square) {
-      const index = Number(square.dataset.index);
-      if (this.selectedIndex !== null && this.legalMoves.includes(index)) {
-        this.makeMove(this.selectedIndex, index);
-      } else if (fromIndex !== null) {
-        this.selectPiece(fromIndex);
-      }
+    if (dropIndex !== null && this.selectedIndex !== null && this.legalMoves.includes(dropIndex)) {
+      this.makeMove(this.selectedIndex, dropIndex);
+    } else if (fromIndex !== null) {
+      this.selectPiece(fromIndex);
     } else {
       this.render();
     }
